@@ -1,3 +1,7 @@
+# emacs related files
+*.org
+*~
+
 # Compiled Object files
 *.slo
 *.lo
@@ -24,6 +28,7 @@
 *.lib
 
 # Executables
+LZBR
 *.exe
 *.out
 *.app
