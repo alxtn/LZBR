@@ -8,40 +8,44 @@
 #include "math.h"
 
 void compress(std::ifstream& input, std::ofstream& output, unsigned char* rBytes, bool verbose){
-  //Perform dictionary compression then encode output
-  std::list<token*>* tokens = new std::list < token* > ;
-  dictionary(input, *tokens, verbose);
-  rByteEncode(*tokens, output, rBytes,NUM_RESERVED, verbose);
-  if(verbose){
-    std::cout << "Output Size (LZ77): " << countBytes(tokens) << " bytes" << std::endl;
-    std::cout << "Output Size (LZBR): " << output.tellp() << " bytes" << std::endl;
-  }
-  delete tokens;
+	std::list<token*>* tokens = new std::list < token* > ;
+	//First apply dictionary compression, then encode and output
+	dictionary(input, *tokens, verbose); 
+	rByteEncode(*tokens, output, rBytes,NUM_RESERVED, verbose);
+	if(verbose){
+		std::cout << "Output Size (LZ77): " << countBytes(tokens) << " bytes" << std::endl;
+		std::cout << "Output Size (LZBR): " << output.tellp() << " bytes" << std::endl;
+	}
+	delete tokens;
 }
 
 
 void rByteEncode(std::list<token*>& tokens, std::ofstream& output,unsigned char* rBytes, int numBytes, bool verbose) {
-	unsigned char block[BLOCK_SIZE];
-
-	int numMatchBytes = 0;
-	bool endFlag = false;
 	std::list<token*>::iterator start, end;
 	start = tokens.begin();
-
+	unsigned char block[BLOCK_SIZE];
+	int numMatchBytes = 0;
+	int numUncompBytes = 0;
+	int blockCount = 0;
+	bool endFlag = false;
+	unsigned char solution = 0;
+	bool found = false;
+	
 	while (!endFlag) {
-
-		int length = getBlock(start, end, block, BLOCK_SIZE, tokens.end(), endFlag, numMatchBytes);
-		//std::cout << "The length is: " << length << std::endl;
-		for (int i = 0; i < length; i++) {
-			//std::cout << block[i];
-		}
-
-		unsigned char solution;
-		bool found = processBlock(block, length, rBytes, numBytes, &solution);
+		//Get data from token stream
+		numUncompBytes = getBlock(start, end, block, BLOCK_SIZE, tokens.end(), endFlag, numMatchBytes);
+		//Remove reserved bytes and return XOR solution if found
+		found = processBlock(block, numUncompBytes, rBytes, numBytes, &solution);
 		if (found) {
-			writeBlock(block, length+numMatchBytes, rBytes, numBytes, solution, start, end, output);
+			//Pack data and write to file
+			writeBlock(block, numUncompBytes+numMatchBytes, rBytes, numBytes, solution, start, end, output);
+		} else {
+			//Failure to find solution to be implemented
+			std::cout << "No solution for block: " << blockCount << std::endl;
+			exit(1);
 		}
 		start = end;
+		blockCount++;
 	}
 
 }
@@ -111,7 +115,10 @@ bool processBlock(unsigned char* block,int length, unsigned char* rBytes, int nu
 	}
 }
 
-void writeBlock(unsigned char* block, int length, unsigned char* rBytes, int numBytes, unsigned char solution, std::list<token*>::iterator start, std::list<token*>::iterator end, std::ofstream& output) {
+void writeBlock(unsigned char* block, int length, unsigned char* rBytes,
+		int numBytes, unsigned char solution, std::list<token*>::iterator start,
+		std::list<token*>::iterator end, std::ofstream& output)
+{
 	int index = 0;
 	bool isGood = output.good();
 	unsigned char packedData[2];
@@ -173,14 +180,16 @@ void packOffsets(int offset1, int offset2, unsigned char* output) {
 
 
 
-int getBlock(std::list<token*>::iterator itr, std::list<token*>::iterator& endItr, unsigned char* dest, int blockLen, std::list<token*>::iterator end, bool& endFlag, int& numMatches) {
-	
+int getBlock(std::list<token*>::iterator itr, std::list<token*>::iterator& endItr,
+	     unsigned char* dest, int blockLen, std::list<token*>::iterator end,
+	     bool& endFlag, int& numMatchBytes)
+{	
 	static bool linked3 = false;
 	static bool linked4 = false;
 	int extra = 0;
 	int index = 0;
 	int count=0;
-	numMatches = 0;
+	numMatchBytes = 0;
 	while (count< blockLen) {
 		int length = (*itr)->length;
 		if (!(*itr)->isMatch) {
@@ -234,7 +243,7 @@ int getBlock(std::list<token*>::iterator itr, std::list<token*>::iterator& endIt
 		}
 	}
 	endItr = itr;
-	numMatches = extra;
+	numMatchBytes = extra;
 	return count - extra;
 
 }
@@ -291,7 +300,7 @@ void decomp(std::ifstream& input, std::ofstream& output, unsigned char* rBytes, 
 		next3 += 2;
 		next4 += 2;
 		while(index < length) {
-			if (index == next3) {
+		  if (index == next3) {
 				count3l++;
 				int offset1 = (int)((((int)((unsigned char)buffer[index])) << 3) | ((buffer[index + 1] >> 5) & 7));
 				//int offset1 = (int)((buffer[index] << 3) | ((buffer[index + 1] >> 5) & 7));
