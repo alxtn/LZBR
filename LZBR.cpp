@@ -4,43 +4,31 @@
 #include "stdio.h"
 #include "dict.h"
 #include "comp.h"
+#include "string.h"
 
+int main(int argc, char **argv){
 
-#define INPUT_FILE "LZBR"
-//#define INPUT_FILE "test.txt"
-#define OUTPUT_FILE "COMP_"
-#define DECOMP_OUT "DECOMP_"
+  unsigned char rBytes[NUM_RESERVED] = R_BYTES;
+   
+  if(argc != 4) //Currently supporting one file at a time
+    std::cout << "Usage: LZBR [mode] <input-file> <ouput-file>" << std::endl;
 
-#define FILE_LEN 32768
-//#define ARBDATA 
+  char* inputFile = argv[2];
+  char* outputFile = argv[3];
+  std::ifstream ifs(inputFile, std::ifstream::binary);
+  std::ofstream ofs(outputFile, std::ifstream::binary);
 
-
-int main(){
-	unsigned char rBytes[NUM_RESERVED] = R_BYTES;
-
-#ifdef ARBDATA
-	std::ofstream outTest(INPUT_FILE, std::ofstream::binary);
-
-	for (int i = 0; i < FILE_LEN; i++) {
-		outTest << (unsigned char)(rand() % 256);
-	}
-	outTest.close();
-#endif
-	std::ifstream input(INPUT_FILE, std::ifstream::binary);
-	std::ofstream output(OUTPUT_FILE, std::ofstream::binary);
-	compress(input, output, rBytes);
-	input.close();
-	output.close();
-
-	std::ifstream ifs;
-	std::ofstream ofs;
-	//Read in the File
-	ifs.open(OUTPUT_FILE, std::ifstream::binary);
-	ofs.open(DECOMP_OUT, std::ifstream::binary);
-	decomp(ifs, ofs, rBytes);
-	ofs.close();
- 	ifs.close();
-
+  if(!strcmp("-c", argv[1])){ //Compressing
+    compress(ifs, ofs, rBytes);
+    ofs.close();
+    ifs.close();
+  } else if(!strcmp("-d", argv[1])){ //Decompressing
+    decomp(ifs, ofs, rBytes);
+    ofs.close();
+    ifs.close();
+  } else {
+    std::cout << "Use a valid mode: -c or -d" << std::endl;
+  }
 }
 
 
