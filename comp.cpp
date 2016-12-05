@@ -8,26 +8,19 @@
 #include "math.h"
 
 void compress(std::ifstream& input, std::ofstream& output, unsigned char* rBytes){
-	
-	// Allocate space for list, perform dictionary compression
-	std::list<token*>* tokens = new std::list < token* > ;
-	dictionary(input, *tokens);
-	for (std::list<token*>::iterator itr = tokens->begin(); itr != tokens->end(); itr++) {
-		//std::cout << **itr;
-	}
-	std::cout << std::endl << "Total Bytes Output: " << countBytes(tokens) << std::endl;
-
-	rByteEncode(*tokens, output, rBytes,NUM_RESERVED);
-	std::cout << "Match 3: ";
-	outBinary(rBytes[0]);
-	std::cout << std::endl << "Match 4: ";
-	outBinary(rBytes[1]);
-	std::cout << std::endl << "Match ^: ";
-	outBinary(rBytes[2]);
-	std::cout << std::endl;
-
-	
-	delete tokens;
+  //Perform dictionary compression then encode output
+  std::list<token*>* tokens = new std::list < token* > ;
+  dictionary(input, *tokens);
+  rByteEncode(*tokens, output, rBytes,NUM_RESERVED);
+  //std::cout << std::endl << "Total Bytes Output: " << countBytes(tokens) << std::endl;
+  // std::cout << "Match 3: ";
+  // outBinary(rBytes[0]);
+  // std::cout << std::endl << "Match 4: ";
+  // outBinary(rBytes[1]);
+  // std::cout << std::endl << "Match ^: ";
+  // outBinary(rBytes[2]);
+  // std::cout << std::endl;	
+  delete tokens;
 }
 
 
@@ -107,13 +100,13 @@ bool processBlock(unsigned char* block,int length, unsigned char* rBytes, int nu
 	if (!sol) {
 		//std::cout << "Failed" << std::endl;
 		failedBlocks++;
-		std::cout << "Failed: " << failedBlocks << " Total: " << numBlocks << std::endl;
+		//std::cout << "Failed: " << failedBlocks << " Total: " << numBlocks << std::endl;
 		return false;
 	} else {
 		//std::cout << std::endl << "Solution: ";
 		///outBinary(key);
 		//std::cout << std::endl;
-		std::cout << "Failed: " << failedBlocks << " Total: " << numBlocks << std::endl;
+	        //std::cout << "Failed: " << failedBlocks << " Total: " << numBlocks << std::endl;
 
 		for (int i = 0; i < length; i++) {
 			block[i] ^= key;
@@ -382,7 +375,7 @@ void decomp(std::ifstream& input, std::ofstream& output, unsigned char* rBytes) 
 	for (int i = 0; i < outIndex; i++) {
 		output << outputBuffer[i];
 	}
-	printf("Match Counts:\n3Heads: %d, 3Intern: %d\n4Heads: %d, 4Intern: %d\nLong: %d", count3h, count3l, count4h, count4l, countUp);
+	//printf("Match Counts:\n3Heads: %d, 3Intern: %d\n4Heads: %d, 4Intern: %d\nLong: %d", count3h, count3l, count4h, count4l, countUp);
 }
 
 

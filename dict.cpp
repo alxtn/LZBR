@@ -20,9 +20,9 @@ void dictionary(std::ifstream& input, std::list<token*>& tokens) {
 	input.seekg(0,input.beg);
 	char* buffer = (char*)malloc(sizeof(char)*bufferSize);
 	input.read(buffer, bufferSize);
-	input.close();
+	//input.close();
 	//printf("File contents:\n\n%s", buffer);
-	std::cout << "Bytes Present:" << numBytesPresent(buffer, bufferSize) << "/256" << std::endl;
+	//std::cout << "Bytes Present:" << numBytesPresent(buffer, bufferSize) << "/256" << std::endl;
 	token* thisToken = NULL;
 
 	token* last3Tok = NULL;
