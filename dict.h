@@ -49,7 +49,7 @@ typedef std::map<KeyVal*, std::list<int>*,compare> myMap;
 
 
 //Other Functions
-void dictionary(std::ifstream& input, std::list<token*>& tokens);
+void dictionary(std::ifstream& input, std::list<token*>& tokens, bool verbose);
 
 void prune(myMap* map, int cutoff); //Cutoff is last valid index
 

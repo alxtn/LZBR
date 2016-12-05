@@ -6,7 +6,7 @@
 
 #define STRAIGHT_OUT false
 
-void dictionary(std::ifstream& input, std::list<token*>& tokens) {
+void dictionary(std::ifstream& input, std::list<token*>& tokens, bool verbose) {
 	int sBufLen = exp2(OFFSET1_BITS); //Search Buffer length
 	int nBufLen = exp2(OFFSET2_BITS); //next buffer length (after current look-ahead buffer)
 	int currBufLen = nBufLen;		  //Size of the look-ahead buffer (characters to be matched)
@@ -20,6 +20,8 @@ void dictionary(std::ifstream& input, std::list<token*>& tokens) {
 	input.seekg(0,input.beg);
 	char* buffer = (char*)malloc(sizeof(char)*bufferSize);
 	input.read(buffer, bufferSize);
+	if(verbose)
+	  std::cout << "Input Size: " << bufferSize << " bytes" << std::endl;
 	//input.close();
 	//printf("File contents:\n\n%s", buffer);
 	//std::cout << "Bytes Present:" << numBytesPresent(buffer, bufferSize) << "/256" << std::endl;
@@ -215,17 +217,20 @@ std::ostream& operator<<(std::ostream& os, token& tok) {
 }
 
 int countBytes(std::list<token*>* tokens) {
-	int count = 0;
-	int numTokens = 0;
-	for (std::list<token*>::iterator itr = tokens->begin(); itr != tokens->end(); itr++) {
-		if (!(*itr)->isMatch) {
-			count += (*itr)->length;
-		} else {
-			count += 3;
-		}
-		numTokens++;
-	}
-	return count + numTokens/8;
+  // Counts bytes output by theoretical LZ77 Compressor
+  int count = 0;
+  int numTokens = 0;
+  for (std::list<token*>::iterator itr = tokens->begin(); itr != tokens->end(); itr++) {
+    if (!(*itr)->isMatch) { //Non-matches output directly
+      count += (*itr)->length;
+    } else {
+      count += 3; //Matches are 3 bytes long
+    }
+    numTokens++;
+  }
+  //For every 8 tokens there is a byte of flags
+  //distinguishing matches from uncompressed characters
+  return count + numTokens/8; 
 }
 
 int numBytesPresent(char* data, int length) {

@@ -7,34 +7,30 @@
 //#include <intrin.h>
 #include "math.h"
 
-void compress(std::ifstream& input, std::ofstream& output, unsigned char* rBytes){
+void compress(std::ifstream& input, std::ofstream& output, unsigned char* rBytes, bool verbose){
   //Perform dictionary compression then encode output
   std::list<token*>* tokens = new std::list < token* > ;
-  dictionary(input, *tokens);
-  rByteEncode(*tokens, output, rBytes,NUM_RESERVED);
-  //std::cout << std::endl << "Total Bytes Output: " << countBytes(tokens) << std::endl;
-  // std::cout << "Match 3: ";
-  // outBinary(rBytes[0]);
-  // std::cout << std::endl << "Match 4: ";
-  // outBinary(rBytes[1]);
-  // std::cout << std::endl << "Match ^: ";
-  // outBinary(rBytes[2]);
-  // std::cout << std::endl;	
+  dictionary(input, *tokens, verbose);
+  rByteEncode(*tokens, output, rBytes,NUM_RESERVED, verbose);
+  if(verbose){
+    std::cout << "Output Size (LZ77): " << countBytes(tokens) << " bytes" << std::endl;
+    std::cout << "Output Size (LZBR): " << output.tellp() << " bytes" << std::endl;
+  }
   delete tokens;
 }
 
 
-void rByteEncode(std::list<token*>& tokens, std::ofstream& output,unsigned char* rBytes, int numBytes) {
+void rByteEncode(std::list<token*>& tokens, std::ofstream& output,unsigned char* rBytes, int numBytes, bool verbose) {
 	unsigned char block[BLOCK_SIZE];
 
 	int numMatchBytes = 0;
 	bool endFlag = false;
 	std::list<token*>::iterator start, end;
 	start = tokens.begin();
+
 	while (!endFlag) {
 
 		int length = getBlock(start, end, block, BLOCK_SIZE, tokens.end(), endFlag, numMatchBytes);
-
 		//std::cout << "The length is: " << length << std::endl;
 		for (int i = 0; i < length; i++) {
 			//std::cout << block[i];
@@ -47,7 +43,7 @@ void rByteEncode(std::list<token*>& tokens, std::ofstream& output,unsigned char*
 		}
 		start = end;
 	}
-	int da = 4;
+
 }
 
 bool processBlock(unsigned char* block,int length, unsigned char* rBytes, int numBytes, unsigned char* solution) {
@@ -266,7 +262,7 @@ void outBinary(unsigned char in) {
 	std::cout << output;
 }
 
-void decomp(std::ifstream& input, std::ofstream& output, unsigned char* rBytes) {
+void decomp(std::ifstream& input, std::ofstream& output, unsigned char* rBytes, bool verbose) {
 	input.seekg(0, input.end);
 	int bufferSize = input.tellg();
 	input.seekg(0, input.beg);
