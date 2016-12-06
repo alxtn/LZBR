@@ -4,15 +4,19 @@
 #include "math.h"
 #include "dict.h"
 
-#define STRAIGHT_OUT false
-
 void dictionary(std::ifstream& input, std::list<token*>& tokens, bool verbose) {
 	int sBufLen = exp2(OFFSET1_BITS); //Search Buffer length
 	int nBufLen = exp2(OFFSET2_BITS); //next buffer length (after current look-ahead buffer)
 	int currBufLen = nBufLen;		  //Size of the look-ahead buffer (characters to be matched)
 	int logBufSize = sBufLen + nBufLen + currBufLen; //Size of the logical buffer
 	myMap* strings = new myMap;
-	myMap* strings2 = new myMap;
+	token* thisToken = NULL;
+	token* last3Tok = NULL;
+	int distTo3 = 0;
+	token* last4Tok = NULL;
+	int distTo4 = 0;
+	int i;
+	std::pair<myMap::iterator,bool> retVal;
 	
 	//Read in the File
 	input.seekg(0,input.end);
@@ -21,29 +25,23 @@ void dictionary(std::ifstream& input, std::list<token*>& tokens, bool verbose) {
 	char* buffer = (char*)malloc(sizeof(char)*bufferSize);
 	input.read(buffer, bufferSize);
 	if(verbose)
-	  std::cout << "Input Size: " << bufferSize << " bytes" << std::endl;
-	//input.close();
-	//printf("File contents:\n\n%s", buffer);
-	//std::cout << "Bytes Present:" << numBytesPresent(buffer, bufferSize) << "/256" << std::endl;
-	token* thisToken = NULL;
-
-	token* last3Tok = NULL;
-	int distTo3 = 0;
-	token* last4Tok = NULL;
-	int distTo4 = 0;
-
-	int i;
+		std::cout << "Input Size: " << bufferSize << " bytes" << std::endl;
+	
+	// Slide through the buffer 
 	for (i = 0; i < bufferSize-2; i++) {
+
+		//Prune strings that have moved out of the window
 		if (i != 0 && (i % sBufLen) == 0) {
 			prune(strings, i-sBufLen);
 		}
-
 		//Generate a new Key at current position and attempt to insert
 		KeyVal* key = new KeyVal(buffer + i);
-		std::pair<myMap::iterator,bool> retVal = strings->insert(mapItem(key, NULL));
-		if (retVal.second || STRAIGHT_OUT) { //If it didn't exist, fill in the list field and fill token
+		retVal = strings->insert(mapItem(key, NULL));
+
+		//If it didn't already exist, no match was found. Fill in the list field and fill token
+		if (retVal.second) { 
 			(retVal.first)->second = new std::list<int>(1, i);
-			if (!thisToken) {
+			if (!thisToken) { 
 				thisToken = new token(false, buffer + i, 1, 0,0);
 			} else if (thisToken->length < CHAR_TOKEN_LEN) {
 				thisToken->data[thisToken->length++] = buffer[i];
@@ -60,7 +58,7 @@ void dictionary(std::ifstream& input, std::list<token*>& tokens, bool verbose) {
 			matchIndex = findLongestMatch(buffer, i-sBufLen, buffer + i, currBufLen, *(retVal.first->second), &matchLength);
 			
 			if (matchIndex != -1) {
-				if (thisToken) {
+				if (thisToken) { //If there is an outstanding token with uncompressed characters
 					tokens.push_back(thisToken);
 				}
 				thisToken = new token(true, NULL, matchLength, i - matchIndex, MAX_LINK - 1);
@@ -123,7 +121,6 @@ void dictionary(std::ifstream& input, std::list<token*>& tokens, bool verbose) {
 	}
 	free(buffer);
 	delete strings;
-	delete strings2;
 }
 
 
@@ -147,8 +144,10 @@ char KeyVal::operator[](int index) const {
 	}
 }
 
-token::token(bool isMatch, char* input, unsigned int length, unsigned int offset1, unsigned int offset2) :
-			isMatch(isMatch), length(length), offset1(offset1), offset2(offset2){
+token::token(bool isMatch, char* input, unsigned int length, unsigned int offset1,
+	     unsigned int offset2) : isMatch(isMatch), length(length),
+				     offset1(offset1), offset2(offset2)
+{
 	if (input) {
 		for (int i = 0; i < length; i++) {
 			data[i] = input[i];
@@ -217,20 +216,20 @@ std::ostream& operator<<(std::ostream& os, token& tok) {
 }
 
 int countBytes(std::list<token*>* tokens) {
-  // Counts bytes output by theoretical LZ77 Compressor
-  int count = 0;
-  int numTokens = 0;
-  for (std::list<token*>::iterator itr = tokens->begin(); itr != tokens->end(); itr++) {
-    if (!(*itr)->isMatch) { //Non-matches output directly
-      count += (*itr)->length;
-    } else {
-      count += 3; //Matches are 3 bytes long
-    }
-    numTokens++;
-  }
-  //For every 8 tokens there is a byte of flags
-  //distinguishing matches from uncompressed characters
-  return count + numTokens/8; 
+	// Counts bytes output by theoretical LZ77 Compressor
+	int count = 0;
+	int numTokens = 0;
+	for (std::list<token*>::iterator itr = tokens->begin(); itr != tokens->end(); itr++) {
+		if (!(*itr)->isMatch) { //Non-matches output directly
+			count += (*itr)->length;
+		} else {
+			count += 3; //Matches are 3 bytes long
+		}
+		numTokens++;
+	}
+	//For every 8 tokens there is a byte of flags
+	//distinguishing matches from uncompressed characters
+	return count + numTokens/8; 
 }
 
 int numBytesPresent(char* data, int length) {
