@@ -1,5 +1,5 @@
 IDIR =./
-CC=gcc
+CC=g++
 CFLAGS=-I$(IDIR)
 
 ODIR=obj
@@ -14,7 +14,7 @@ OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 
 $(ODIR)/%.o: %.cpp $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) -g -c -o $@ $< $(CFLAGS)
 
 LZBR: $(OBJ)
-	gcc -o $@ $^ $(CFLAGS) $(LIBS)
+	$(CC) -g -o $@ $^ $(CFLAGS) $(LIBS)
